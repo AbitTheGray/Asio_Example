@@ -35,8 +35,10 @@ add_subdirectory(lib)
 
 file(GLOB_RECURSE PROJECT_SOURCE src/*.hpp src/*.cpp src/*.h src/*.c)
 
-add_library(Asio_Example STATIC ${PROJECT_SOURCE})
+add_executable(Asio_Example ${PROJECT_SOURCE})
 target_include_directories(Asio_Example PUBLIC src/)
+
+set_target_properties(Asio_Example PROPERTIES OUTPUT_NAME "server")
 
 target_link_libraries(Asio_Example asio)
 
@@ -52,16 +54,3 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # GCC
 else()
     message(FATAL_ERROR "Unsupported compiler")
 endif()
-
-
-
-#--------------------------------
-# Source (Run)
-#--------------------------------
-
-file(GLOB_RECURSE PROJECT_SOURCE_RUN src_run/*.hpp src_run/*.cpp src_run/*.h src_run/*.c)
-
-add_executable(Asio_Example_Run ${PROJECT_SOURCE_RUN})
-set_target_properties(Asio_Example_Run PROPERTIES OUTPUT_NAME "server")
-
-target_link_libraries(Asio_Example_Run Asio_Example)

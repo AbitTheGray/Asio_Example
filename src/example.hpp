@@ -32,155 +32,154 @@
 
 //----------------------------------------------------------------------
 
-class chat_participant
+class ChatParticipant;
+
+typedef std::shared_ptr<ChatParticipant> ChatParticipant_ptr;
+
+class ChatParticipant
 {
 public:
-    virtual ~chat_participant() = default;
+    virtual ~ChatParticipant() = default;
 
     virtual void deliver(const std::string& msg) = 0;
 };
 
-typedef std::shared_ptr<chat_participant> chat_participant_ptr;
-
 //----------------------------------------------------------------------
 
-class chat_room
+class ChatRoom;
+
+typedef std::shared_ptr<ChatRoom> ChatRoom_ptr;
+
+class ChatRoom
 {
 public:
-    void join(const chat_participant_ptr& participant)
+    void Join(const ChatParticipant_ptr& participant)
     {
-        participants_.insert(participant);
-        for(const auto& msg: recent_msgs_)
+        m_Participants.insert(participant);
+        for(const auto& msg: m_RecentMessages)
             participant->deliver(msg);
     }
 
-    void leave(const chat_participant_ptr& participant)
+    void Leave(const ChatParticipant_ptr& participant)
     {
-        participants_.erase(participant);
+        m_Participants.erase(participant);
     }
 
-    void deliver(const std::string& msg)
+    void Broadcast(const std::string& msg)
     {
-        recent_msgs_.push_back(msg);
-        while(recent_msgs_.size() > max_recent_msgs)
-            recent_msgs_.pop_front();
+        m_RecentMessages.push_back(msg);
+        while(m_RecentMessages.size() > MaxRecentMessages)
+            m_RecentMessages.pop_front();
 
-        for(const auto& participant: participants_)
+        for(const auto& participant: m_Participants)
             participant->deliver(msg);
     }
 
 private:
-    std::set<chat_participant_ptr> participants_;
-    enum
-    {
-        max_recent_msgs = 100
-    };
-    std::deque<std::string> recent_msgs_;
+    std::set<ChatParticipant_ptr> m_Participants;
+    static const std::size_t MaxRecentMessages = 100;
+    std::deque<std::string> m_RecentMessages;
 };
 
 //----------------------------------------------------------------------
 
-class chat_session
-        : public chat_participant,
-          public std::enable_shared_from_this<chat_session>
+class ChatSession
+        : public ChatParticipant,
+          public std::enable_shared_from_this<ChatSession>
 {
 public:
-    chat_session(asio::ip::tcp::socket socket, chat_room& room)
-            : socket_(std::move(socket)),
-              timer_(socket_.get_executor()),
-              room_(room)
+    ChatSession(asio::ip::tcp::socket socket, ChatRoom_ptr room)
+            : m_Socket(std::move(socket)),
+              m_Timer(m_Socket.get_executor()),
+              m_Room(std::move(room))
     {
-        timer_.expires_at(std::chrono::steady_clock::time_point::max());
+        m_Timer.expires_at(std::chrono::steady_clock::time_point::max());
     }
 
-    void start()
+    void Start()
     {
-        room_.join(shared_from_this());
+        m_Room->Join(shared_from_this());
 
-        co_spawn(socket_.get_executor(),
-                 [self = shared_from_this()]
-                 { return self->reader(); },
-                 asio::detached
+        co_spawn(
+                m_Socket.get_executor(),
+                [self = shared_from_this()] { return self->Reader(); },
+                asio::detached
                 );
 
-        co_spawn(socket_.get_executor(),
-                 [self = shared_from_this()]
-                 { return self->writer(); },
-                 asio::detached
+        co_spawn(
+                m_Socket.get_executor(),
+                [self = shared_from_this()] { return self->Writer(); },
+                asio::detached
                 );
     }
 
-    void deliver(const std::string& msg)
+    void deliver(const std::string& msg) override
     {
-        write_msgs_.push_back(msg);
-        timer_.cancel_one();
+        m_WriteMessages.push_back(msg);
+        m_Timer.cancel_one();
     }
 
 private:
-    asio::awaitable<void> reader()
+    [[nodiscard]] asio::awaitable<void> Reader()
     {
         try
         {
             for(std::string read_msg;;)
             {
                 std::size_t n = co_await asio::async_read_until(
-                        socket_,
+                        m_Socket,
                         asio::dynamic_buffer(read_msg, 1024),
                         "\n",
                         asio::use_awaitable
                                                                );
 
-                room_.deliver(read_msg.substr(0, n));
+                m_Room->Broadcast(read_msg.substr(0, n));
                 read_msg.erase(0, n);
             }
         }
         catch(std::exception&)
         {
-            stop();
+            Stop();
         }
     }
 
-    asio::awaitable<void> writer()
+    [[nodiscard]] asio::awaitable<void> Writer()
     {
         try
         {
-            while(socket_.is_open())
+            while(m_Socket.is_open())
             {
-                if(write_msgs_.empty())
+                if(m_WriteMessages.empty())
                 {
                     asio::error_code ec;
-                    co_await timer_.async_wait(redirect_error(asio::use_awaitable, ec));
+                    co_await m_Timer.async_wait(redirect_error(asio::use_awaitable, ec));
                 }
                 else
                 {
                     co_await asio::async_write(
-                            socket_,
-                            asio::buffer(write_msgs_.front()),
+                            m_Socket,
+                            asio::buffer(m_WriteMessages.front()),
                             asio::use_awaitable
                                               );
-                    write_msgs_.pop_front();
+                    m_WriteMessages.pop_front();
                 }
             }
         }
         catch(std::exception&)
         {
-            stop();
+            Stop();
         }
     }
 
-    void stop()
+    void Stop()
     {
-        room_.leave(shared_from_this());
-        socket_.close();
-        timer_.cancel();
+        m_Room->Leave(shared_from_this());
+        m_Socket.close();
+        m_Timer.cancel();
     }
 
-    asio::ip::tcp::socket socket_;
-    asio::steady_timer timer_;
-    chat_room& room_;
-    std::deque<std::string> write_msgs_;
+    asio::ip::tcp::socket m_Socket;
+    asio::steady_timer m_Timer;
+    ChatRoom_ptr m_Room;
+    std::deque<std::string> m_WriteMessages;
 };
-
-//----------------------------------------------------------------------
-
-int main_call(int argc, const char* argv[]);

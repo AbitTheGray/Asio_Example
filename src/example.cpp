@@ -1,25 +1,25 @@
 #include "example.hpp"
 
-asio::awaitable<void> listener(asio::ip::tcp::acceptor acceptor)
+[[nodiscard]] static asio::awaitable<void> listener(asio::ip::tcp::acceptor acceptor)
 {
-    chat_room room;
+    ChatRoom_ptr room = std::make_shared<ChatRoom>();
 
     while(true)
     {
-        std::make_shared<chat_session>(
+        std::make_shared<ChatSession>(
                 co_await acceptor.async_accept(asio::use_awaitable),
                 room
-                                      )->start();
+                                     )->Start();
     }
 }
 
-int main_call(int argc, const char** argv)
+int main(int argc, const char** argv)
 {
     try
     {
         if(argc < 2)
         {
-            std::cerr << "Usage: chat_server <port> [<port> ...]\n";
+            std::cerr << "Usage: " << argv[0] << " <port> [<port> ...]" << std::endl;
             return 1;
         }
 
@@ -42,7 +42,7 @@ int main_call(int argc, const char** argv)
     }
     catch(std::exception& e)
     {
-        std::cerr << "Exception: " << e.what() << "\n";
+        std::cerr << "Exception: " << e.what() << std::endl;
     }
 
     return 0;
