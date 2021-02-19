@@ -1,19 +1,13 @@
-# Template
+# Asio Example
 
-This is template project to allow fast and simple C++ project creation.
+C++17 Example from [Asio C++ Library](https://think-async.com/Asio/index.html) packed in a single CMake project.
+
+[Original link](https://think-async.com/Asio/asio-1.18.1/src/examples/cpp17/coroutines_ts/chat_server.cpp)
 
 ## Libraries
 
 | Name | License | Version |
 |------|---------|---------|
-| ... | `MIT` / `GPLv3` | branch: `master` |
+| [Asio](https://think-async.com/Asio/index.html) | [`Boost`](https://www.boost.org/LICENSE_1_0.txt) | branch: `master` |
 
 All libraries are used as `static library` to maximize optimization and limit problems with deployment and versions.
-
-## Testing
-
-- Set `BUILD_TESTING` CMake variable to `ON` (`-DBUILD_TESTING=ON`).
-- Run `ctest` in build directory or use CLion and select `All CTest` as a run target.
-
-Executable of tests have prefix `t_` (test `abc` would be executable `t_abc`).
-After creating new test, add it to [`tests/CMakeLists.txt`](tests/CMakeLists.txt) as `add_subdirectory(abc)` (where `abc` is name of your test).

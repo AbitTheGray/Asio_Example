@@ -1,0 +1,4 @@
+[submodule "asio"]
+	path = lib/asio
+	url = git@github.com:chriskohlhoff/asio.git
+	branch = master
