@@ -30,26 +30,26 @@ add_subdirectory(lib)
 
 
 #--------------------------------
-# Source
+# Source - Coroutines
 #--------------------------------
 
-file(GLOB_RECURSE PROJECT_SOURCE src/*.hpp src/*.cpp src/*.h src/*.c)
+file(GLOB_RECURSE PROJECT_SOURCE_COROUTINES src_coroutines/*.hpp src_coroutines/*.cpp src_coroutines/*.h src_coroutines/*.c)
 
-add_executable(Asio_Example ${PROJECT_SOURCE})
-target_include_directories(Asio_Example PUBLIC src/)
+add_executable(Asio_Example_Coroutines ${PROJECT_SOURCE_COROUTINES})
+target_include_directories(Asio_Example_Coroutines PUBLIC src/)
 
-set_target_properties(Asio_Example PROPERTIES OUTPUT_NAME "server")
+set_target_properties(Asio_Example_Coroutines PROPERTIES OUTPUT_NAME "server")
 
-target_link_libraries(Asio_Example asio)
+target_link_libraries(Asio_Example_Coroutines asio)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # GCC
-    target_link_libraries(Asio_Example -static-libgcc -static-libstdc++)
-    target_compile_options(Asio_Example PUBLIC -fcoroutines)
+    target_link_libraries(Asio_Example_Coroutines -static-libgcc -static-libstdc++)
+    target_compile_options(Asio_Example_Coroutines PUBLIC -fcoroutines)
     if(WIN32)
-        target_link_libraries(Asio_Example ws2_32 wsock32 -static winpthread)
+        target_link_libraries(Asio_Example_Coroutines ws2_32 wsock32 -static winpthread)
     endif()
     if(UNIX)
-        target_link_libraries(Asio_Example pthread)
+        target_link_libraries(Asio_Example_Coroutines pthread)
     endif()
 else()
     message(FATAL_ERROR "Unsupported compiler")
